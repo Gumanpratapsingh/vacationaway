@@ -1,7 +1,6 @@
 const { google } = require('googleapis');
 
-const labelName = process.env.LABEL_NAME || "Vacation-Mails";
-
+// List of predefined vacation messages
 const vacationMessages = [
   "Hi, \n\nI'm currently on vacation and will get back to you soon.\n\nBest, \nGuman Pratap Singh",
   "Hello, \n\nThank you for your email. I'm out of the office at the moment and will respond once I return.\n\nBest regards, \nGuman Pratap Singh",
@@ -13,14 +12,41 @@ const vacationMessages = [
   "Hi, \n\nI am away from my desk at the moment. For immediate assistance, please contact my PA. I will get back to your email at my earliest convenience.\n\nCheers, \nGuman Pratap Singh"
 ];
 
-function getRandomVacationMessage() {
-  const randomIndex = Math.floor(Math.random() * vacationMessages.length);
-  return vacationMessages[randomIndex];
+let settings = {
+  selectedMessageIndex: 0, // Default to the first message
+  customMessage: ""        // Field for storing a custom message
+};
+
+
+const labelName = process.env.LABEL_NAME || "Vacation-Mails";
+
+function getCurrentSettings() {
+  return settings;
 }
 
+// Modify updateSettings to handle custom message
+function updateSettings(newSettings) {
+  const index = parseInt(newSettings.selectedMessageIndex, 10);
+  if (!isNaN(index) && index >= 0 && index < vacationMessages.length) {
+    settings.selectedMessageIndex = index;
+  }
+  if (newSettings.customMessage !== undefined) {
+    settings.customMessage = newSettings.customMessage;
+  }
+}
+
+
+// Modify getCurrentVacationMessage to return the custom message if set
+function getCurrentVacationMessage() {
+  if (settings.customMessage) {
+    return settings.customMessage;
+  }
+  return vacationMessages[settings.selectedMessageIndex];
+}
 async function setupGmailClient(auth) {
   console.log("Setting up Gmail client...");
-  return google.gmail({ version: 'v1', auth });
+  const gmail = google.gmail({ version: 'v1', auth });
+  return gmail;
 }
 
 async function createLabel(gmail) {
@@ -37,11 +63,9 @@ async function createLabel(gmail) {
     return response.data.id;
   } catch (error) {
     if (error.code === 409) {
-      const response = await gmail.users.labels.list({
-        userId: "me",
-      });
-      const label = response.data.labels.find(label => label.name === labelName);
-      return label.id;
+      const response = await gmail.users.labels.list({ userId: "me" });
+      const existingLabel = response.data.labels.find(label => label.name === labelName);
+      return existingLabel.id;
     } else {
       throw error;
     }
@@ -90,7 +114,7 @@ async function sendReply(gmail, message) {
   }
 
   const replySubject = subject.startsWith('Re:') ? subject : `Re: ${subject}`;
-  const replyBody = getRandomVacationMessage();
+  const replyBody = getCurrentVacationMessage();
 
   const rawMessage = [
     `From: me`,
@@ -113,7 +137,6 @@ async function sendReply(gmail, message) {
 }
 
 async function processEmails(auth) {
-  console.log("Starting email processing...");
   const gmail = await setupGmailClient(auth);
   const labelId = await createLabel(gmail);
 
@@ -137,4 +160,7 @@ async function processEmails(auth) {
 
 module.exports = {
   processEmails,
+  getCurrentSettings,
+  updateSettings,
+  vacationMessages // Exporting the list of messages
 };

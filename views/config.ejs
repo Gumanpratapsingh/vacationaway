@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration</title>
+    <link rel="stylesheet" href="/public/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Configure Email Settings</h1>
+        </header>
+
+        <form action="/config" method="POST">
+            <label for="selectedMessageIndex">Select Vacation Message:</label>
+            <select name="selectedMessageIndex" id="selectedMessageIndex">
+                <% vacationMessages.forEach(function(message, index) { %>
+                    <option value="<%= index %>" <%= index === currentSettings.selectedMessageIndex ? 'selected' : '' %>><%= message %></option>
+                <% }); %>
+                <option value="-1" <%= currentSettings.customMessage ? 'selected' : '' %>>Custom Message</option>
+            </select>
+            
+            <label for="customMessage">Or Write Your Own:</label>
+            <textarea name="customMessage" id="customMessage" rows="4"><%= currentSettings.customMessage %></textarea>
+
+            <input type="submit" value="Save Settings">
+        </form>
+    </div>
+</body>
+</html>
+
+
+
+
+
+
+
